@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { TAILWIND_COLORS } from "@/constants/tailwind-colors";
 import Logo from "@/components/icons/logo";
-import Link from "next/link.js";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 type RGB = [number, number, number];
