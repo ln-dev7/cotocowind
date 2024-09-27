@@ -4,6 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { TAILWIND_COLORS } from "@/constants/tailwind-colors";
+import Logo from "@/components/icons/logo";
+import Link from "next/link.js";
+import { cn } from "@/lib/utils";
 
 type RGB = [number, number, number];
 
@@ -12,20 +15,26 @@ interface ColorResult {
   code: string;
 }
 
-// Fonction pour convertir HEX en RGB
 const hexToRgb = (hex: string): RGB => {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
+  hex = hex.replace(/^#/, "");
+
+  if (hex.length === 3) {
+    hex = hex
+      .split("")
+      .map((char) => char + char)
+      .join("");
+  }
+
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
   return [r, g, b];
 };
 
-// Fonction pour parser RGB
 const parseRgb = (rgb: string): RGB => {
   return rgb.match(/\d+/g)!.map(Number) as RGB;
 };
 
-// Fonction pour convertir HSL en RGB
 const hslToRgb = (h: number, s: number, l: number): RGB => {
   h /= 360;
   s /= 100;
@@ -54,7 +63,6 @@ const hslToRgb = (h: number, s: number, l: number): RGB => {
   return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
 };
 
-// Fonction pour calculer la distance entre deux couleurs
 const colorDistance = (rgb1: RGB, rgb2: RGB): number => {
   return Math.sqrt(
     Math.pow(rgb1[0] - rgb2[0], 2) +
@@ -63,7 +71,6 @@ const colorDistance = (rgb1: RGB, rgb2: RGB): number => {
   );
 };
 
-// Fonction pour trouver la couleur Tailwind la plus proche
 const findClosestTailwindColor = (rgb: RGB): ColorResult => {
   let closestColor: string | null = null;
   let closestDistance = Infinity;
@@ -71,7 +78,6 @@ const findClosestTailwindColor = (rgb: RGB): ColorResult => {
 
   Object.entries(TAILWIND_COLORS).forEach(([colorName, shades]) => {
     if (typeof shades === "string") {
-      // Pour le blanc et le noir qui n'ont pas de nuances
       const tailwindRgb = hexToRgb(shades);
       const distance = colorDistance(rgb, tailwindRgb);
       if (distance < closestDistance) {
@@ -108,29 +114,26 @@ const HomePage: React.FC = () => {
 
     let rgb: RGB;
     if (input.startsWith("#")) {
-      // HEX
-      if (!/^#[0-9A-Fa-f]{6}$/.test(input)) {
-        setError("Format HEX invalide. Utilisez le format #RRGGBB.");
+      if (!/^#([0-9A-Fa-f]{3}){1,2}$/.test(input)) {
+        setError("Invalid HEX format. Use the format #RGB or #RRGGBB.");
         return;
       }
       rgb = hexToRgb(input);
     } else if (input.startsWith("rgb")) {
-      // RGB
       if (!/^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/.test(input)) {
-        setError("Format RGB invalide. Utilisez le format rgb(R, G, B).");
+        setError("Invalid RGB format. Use the format rgb(R, G, B).");
         return;
       }
       rgb = parseRgb(input);
     } else if (input.startsWith("hsl")) {
-      // HSL
       if (!/^hsl\(\s*\d+\s*,\s*\d+%?\s*,\s*\d+%?\s*\)$/.test(input)) {
-        setError("Format HSL invalide. Utilisez le format hsl(H, S%, L%).");
+        setError("Invalid HSL format. Use the format hsl(H, S%, L%).");
         return;
       }
       const [h, s, l] = parseRgb(input);
       rgb = hslToRgb(h, s, l);
     } else {
-      setError("Format de couleur non reconnu. Utilisez HEX, RGB ou HSL.");
+      setError("Unrecognized color format. Use HEX, RGB, or HSL.");
       return;
     }
 
@@ -139,42 +142,66 @@ const HomePage: React.FC = () => {
   };
 
   return (
-    <div className="p-4 max-w-md mx-auto">
-      <h1 className="text-2xl font-bold mb-4">CoToCoWind</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="p-4 max-w-md w-full">
+      <div className="w-full flex-col flex items-center justify-center mb-6 gap-2">
+        <Logo />
+        <h2 className="text-center font-semibold">
+          Convert Colors to Tailwind Shades
+        </h2>
+      </div>
+      <div className="w-full flex flex-col items-center justify-center mb-6">
+        <p className="text-center">
+          Easily find the closest Tailwind CSS color to any hue.
+        </p>
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-4 w-full">
         <Input
           type="text"
           value={input}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
             setInput(e.target.value)
           }
-          placeholder="Entrez une couleur (HEX, RGB, ou HSL)"
+          placeholder="Enter a color (HEX, RGB, or HSL)"
           className="w-full"
         />
         <Button type="submit" className="w-full">
-          Trouver la correspondance
+          Find the matching color
         </Button>
       </form>
       {error && (
-        <Alert variant="destructive" className="mt-4">
+        <Alert variant="destructive" className="mt-4 w-full">
           {error}
         </Alert>
       )}
       {result && (
-        <div className="mt-4 p-4 border rounded">
-          <p>Couleur Tailwind la plus proche :</p>
+        <div className="w-full mt-4 p-4 border rounded-2xl">
+          <p>Closest Tailwind color:</p>
           <div
-            className="w-full h-20 mt-2 mb-2"
+            className={cn(
+              "w-full h-20 mt-2 mb-2 rounded-xl",
+              result.code === "white" ? "border border-gray-300" : ""
+            )}
             style={{ backgroundColor: result.color }}
           ></div>
           <p>
-            Code Tailwind : <strong>{result.code}</strong>
+            Tailwind code: <strong>{result.code}</strong>
           </p>
           <p>
-            Valeur HEX : <strong>{result.color}</strong>
+            HEX value: <strong>{result.color}</strong>
           </p>
         </div>
       )}
+      <div className="w-full flex items-center justify-center mt-10">
+        <Button variant="outline" asChild>
+          <Link
+            href="https://github.com/ln-dev7/cotocowind"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            GITHUB
+          </Link>
+        </Button>
+      </div>
     </div>
   );
 };
