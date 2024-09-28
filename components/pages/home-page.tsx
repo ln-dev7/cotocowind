@@ -7,6 +7,8 @@ import { TAILWIND_COLORS } from "@/constants/tailwind-colors";
 import Logo from "@/components/icons/logo";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { Copy } from "lucide-react";
 
 type RGB = [number, number, number];
 
@@ -141,6 +143,11 @@ const HomePage: React.FC = () => {
     setResult(closestColor);
   };
 
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`Copied ${text} to clipboard!`);
+  };
+
   return (
     <div className="p-4 max-w-md w-full">
       <div className="w-full flex-col flex items-center justify-center mb-6 gap-2">
@@ -178,17 +185,35 @@ const HomePage: React.FC = () => {
           <p>Closest Tailwind color:</p>
           <div
             className={cn(
-              "w-full h-20 mt-2 mb-2 rounded-xl",
-              result.code === "white" ? "border border-gray-300" : ""
+              "w-full h-20 mt-2 mb-4 rounded-xl duration-300 transition-all border",
+              result.code === "white" ? "border-gray-300" : "border-transparent"
             )}
             style={{ backgroundColor: result.color }}
           ></div>
-          <p>
-            Tailwind code: <strong>{result.code}</strong>
-          </p>
-          <p>
-            HEX value: <strong>{result.color}</strong>
-          </p>
+          <div className="w-full flex flex-col items-start gap-2">
+            <div className="w-full flex items-center justify-between">
+              <p>
+                Tailwind code:{" "}
+                <code className="px-2 py-1 bg-muted rounded-md font-semobold">
+                  {result.code}
+                </code>
+              </p>
+              <Button variant="ghost" onClick={() => handleCopy(result.code)}>
+                <Copy size={14} />
+              </Button>
+            </div>
+            <div className="w-full flex items-center justify-between">
+              <p>
+                HEX value:{" "}
+                <code className="px-2 py-1 bg-muted rounded-md font-semobold">
+                  {result.color}
+                </code>
+              </p>
+              <Button variant="ghost" onClick={() => handleCopy(result.color)}>
+                <Copy size={14} />
+              </Button>
+            </div>
+          </div>
         </div>
       )}
       <div className="w-full flex items-center justify-center mt-10">
