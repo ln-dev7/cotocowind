@@ -162,15 +162,24 @@ const HomePage: React.FC = () => {
         </p>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4 w-full">
-        <Input
-          type="text"
-          value={input}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            setInput(e.target.value)
-          }
-          placeholder="Enter a color (HEX, RGB, or HSL)"
-          className="w-full"
-        />
+        <div className="relative">
+          <Input
+            type="text"
+            value={input}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setInput(e.target.value)
+            }
+            placeholder="Enter a color (HEX, RGB, or HSL)"
+            className="w-full pr-10"
+          />
+          <div
+            className="size-7 rounded-md absolute top-1/2 right-1 -translate-y-1/2 duration-300 transition-all border border-transparent"
+            style={{
+              backgroundColor: input,
+              borderColor: input === "" ? "transparent" : "rgba(0, 0, 0, 0.1)",
+            }}
+          ></div>
+        </div>
         <Button type="submit" className="w-full">
           Find the matching color
         </Button>
