@@ -65,6 +65,50 @@ const hslToRgb = (h: number, s: number, l: number): RGB => {
   return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
 };
 
+const oklchToRgb = (l: number, c: number, h: number): RGB => {
+  // Normalize L to 0-1 range if it's in percentage (0-100)
+  if (l > 1) {
+    l = l / 100;
+  }
+
+  // Convert OKLCH to OKLAB
+  const hRad = (h * Math.PI) / 180;
+  const a = c * Math.cos(hRad);
+  const b = c * Math.sin(hRad);
+
+  // Convert OKLAB to linear RGB using the correct matrix
+  const l_ = l + 0.3963377774 * a + 0.2158037573 * b;
+  const m_ = l - 0.1055613458 * a - 0.0638541728 * b;
+  const s_ = l - 0.0894841775 * a - 1.291485548 * b;
+
+  const l3 = l_ * l_ * l_;
+  const m3 = m_ * m_ * m_;
+  const s3 = s_ * s_ * s_;
+
+  let r = +4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3;
+  let g = -1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3;
+  let b_ = -0.0041960863 * l3 - 0.7034186147 * m3 + 1.707614701 * s3;
+
+  // Apply gamma correction (linear RGB to sRGB)
+  const gammaCorrect = (val: number): number => {
+    if (val <= 0.0031308) {
+      return 12.92 * val;
+    }
+    return 1.055 * Math.pow(val, 1 / 2.4) - 0.055;
+  };
+
+  r = gammaCorrect(r);
+  g = gammaCorrect(g);
+  b_ = gammaCorrect(b_);
+
+  // Clamp and convert to 0-255 range
+  r = Math.max(0, Math.min(1, r));
+  g = Math.max(0, Math.min(1, g));
+  b_ = Math.max(0, Math.min(1, b_));
+
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(b_ * 255)];
+};
+
 const colorDistance = (rgb1: RGB, rgb2: RGB): number => {
   return Math.sqrt(
     Math.pow(rgb1[0] - rgb2[0], 2) +
@@ -134,8 +178,26 @@ const HomePage: React.FC = () => {
       }
       const [h, s, l] = parseRgb(input);
       rgb = hslToRgb(h, s, l);
+    } else if (input.startsWith("oklch")) {
+      // Match oklch format with optional % and optional commas
+      const oklchRegex =
+        /oklch\(\s*([\d.]+)%?\s*,?\s*([\d.]+)%?\s*,?\s*([\d.]+)\s*\)/;
+      const matches = input.match(oklchRegex);
+
+      if (!matches || matches.length !== 4) {
+        setError(
+          "Invalid OKLCH format. Use the format oklch(L, C, H) or oklch(L% C H)."
+        );
+        return;
+      }
+
+      const l = parseFloat(matches[1]);
+      const c = parseFloat(matches[2]);
+      const h = parseFloat(matches[3]);
+
+      rgb = oklchToRgb(l, c, h);
     } else {
-      setError("Unrecognized color format. Use HEX, RGB, or HSL.");
+      setError("Unrecognized color format. Use HEX, RGB, HSL, or OKLCH.");
       return;
     }
 
@@ -169,7 +231,7 @@ const HomePage: React.FC = () => {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setInput(e.target.value)
             }
-            placeholder="Enter a color (HEX, RGB, or HSL)"
+            placeholder="Enter a color (HEX, RGB, HSL, or OKLCH)"
             className="w-full pr-10"
           />
           <div
